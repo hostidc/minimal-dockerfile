@@ -1,13 +1,15 @@
 # ============================================
 # Minimal Dockerfile for Jupyter/MyBinder Environment
-# 修复：使用标准的 ubuntu:24.04 确保 /bin/sh 和 apt 正常工作
 # ============================================
 FROM ubuntu:24.04
 
 # 1. 设置非交互模式，防止 apt 安装时弹出配置界面卡住构建
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 2. 以 root 身份安装所有系统级依赖 (必须在切换 USER 之前执行)
+# 2. 【关键修复】允许 pip 在 Ubuntu 24.04 中全局安装包 (绕过 PEP 668 限制)
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+
+# 3. 以 root 身份安装所有系统级依赖 (必须在切换 USER 之前执行)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # 核心基础工具
     curl wget ca-certificates git iproute2 procps net-tools dnsutils tree jq vim-tiny nano less unzip zip tar gzip \
@@ -35,15 +37,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# 3. 升级 pip 并安装 Jupyter 核心组件
+# 4. 升级 pip 并安装 Jupyter 核心组件 (现在有了 PIP_BREAK_SYSTEM_PACKAGES=1，这里不会再报错了)
 RUN pip3 install --no-cache-dir --upgrade pip && \
     pip3 install --no-cache-dir notebook jupyterlab
 
-# 4. 创建非 root 用户并设置环境 (MyBinder 默认通常为 jovyan)
+# 5. 创建非 root 用户并设置环境 (MyBinder 默认通常为 jovyan)
 ARG NB_USER=jovyan
 ARG NB_UID=1000
 
-# 修复：使用现代的 ENV key=value 语法，消除 Docker 警告
 ENV USER=${NB_USER}
 ENV HOME=/home/${NB_USER}
 
@@ -53,9 +54,9 @@ RUN adduser --disabled-password \
     ${NB_USER} && \
     usermod -aG sudo ${NB_USER}
 
-# 5. 切换工作目录和用户
+# 6. 切换工作目录和用户
 WORKDIR ${HOME}
 USER ${USER}
 
-# 6. 默认启动命令 (MyBinder 会覆盖此命令，但本地测试时需要)
+# 7. 默认启动命令 (MyBinder 会自动覆盖此命令，但本地测试时需要)
 CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
