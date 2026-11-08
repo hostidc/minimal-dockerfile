@@ -40,7 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 4. 升级 pip 并安装 Jupyter 核心组件
 RUN pip3 install --no-cache-dir notebook jupyterlab
 
-# 5. 【关键修复】删除 Ubuntu 默认的 ubuntu 用户以释放 UID 1000，然后创建 jovyan 用户
+# 5. 创建非 root 用户并设置环境 (MyBinder 默认通常为 jovyan)
 ARG NB_USER=jovyan
 ARG NB_UID=1000
 
@@ -53,6 +53,17 @@ RUN userdel -r ubuntu || true && \
     --uid ${NB_UID} \
     ${NB_USER} && \
     usermod -aG sudo ${NB_USER}
+
+# ============================================
+# 【新增修复】确保终端有颜色且 ll 命令可用
+# ============================================
+RUN echo "alias ll='ls -alF'" >> /etc/bash.bashrc && \
+    echo "alias la='ls -A'" >> /etc/bash.bashrc && \
+    echo "alias l='ls -CF'" >> /etc/bash.bashrc && \
+    echo "force_color_prompt=yes" >> /etc/bash.bashrc
+
+# 设置终端环境变量以支持 256 色显示
+ENV TERM=xterm-256color
 
 # 6. 切换工作目录和用户
 WORKDIR ${HOME}
