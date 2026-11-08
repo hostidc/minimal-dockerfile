@@ -63,7 +63,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
     rm /tmp/node.tar.xz && \
     # 安装 n 到用户的 ~/.local/bin 下
     npm install -g n && \
-    # 确保 jovyan 用户完全拥有这个目录
+    # 确保 jovyan 用户完全拥有 .local 目录
     chown -R ${NB_UID}:${NB_UID} ${HOME}/.local
 
 # 8. 确保终端有颜色且 ll 命令可用
@@ -73,9 +73,15 @@ RUN echo "alias ll='ls -alF'" > /etc/profile.d/99-custom-aliases.sh && \
     echo "force_color_prompt=yes" >> /etc/profile.d/99-custom-aliases.sh && \
     chmod +x /etc/profile.d/99-custom-aliases.sh
 
-# 9. 切换工作目录和用户
+# 9. ============================================
+#    【核心修复】在切换用户前，将 HOME 目录的完全控制权移交给普通用户
+#    这会清除 root 在第 7 步运行 npm 时留下的 ~/.npm 等目录的 root 权限
+# ============================================
+RUN chown -R ${NB_UID}:${NB_UID} ${HOME}
+
+# 10. 切换工作目录和用户
 WORKDIR ${HOME}
 USER ${USER}
 
-# 10. 默认启动命令 (因为已经是 jovyan 用户，去掉了 --allow-root)
+# 11. 默认启动命令 (因为已经是 jovyan 用户，去掉了 --allow-root)
 CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser"]
