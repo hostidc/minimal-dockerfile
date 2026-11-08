@@ -1,4 +1,4 @@
-FROM python:3.14.10-slim
+FROM ubuntu/python:3.14-26.04_stable
 # install the notebook package
 RUN pip install --no-cache --upgrade pip && \
     pip install --no-cache notebook jupyterlab
