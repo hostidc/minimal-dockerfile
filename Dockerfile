@@ -44,7 +44,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 5. 直接安装 Jupyter 核心组件 (已移除 --upgrade pip 以避免 Debian 打包冲突)
 RUN pip3 install --no-cache-dir notebook jupyterlab
 
-# 6. 创建非 root 用户并设置环境 (显式指定 /bin/bash 为默认 shell)
+
+# 6. ============================================
+#    安装 NVM (Node Version Manager) 和 Node.js
+# ============================================
+ENV NVM_DIR=/usr/local/nvm
+# 下载并安装 NVM 脚本
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+
+# 指定要安装的 Node.js LTS 版本 (例如 20.18.0)
+ENV NODE_VERSION 20.18.0
+# 通过 bash 加载 nvm 并安装指定版本的 Node.js
+RUN /bin/bash -c "source $NVM_DIR/nvm.sh && nvm install $NODE_VERSION && nvm use --delete-prefix v$NODE_VERSION --silent"
+
+# 将 Node.js 和 npm 加入全局 PATH，确保任何用户都能直接使用 node 和 npm 命令
+ENV PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+
+
+# 7. 创建非 root 用户并设置环境 (显式指定 /bin/bash 为默认 shell)
 ARG NB_USER=jovyan
 ARG NB_UID=1000
 
@@ -69,9 +86,9 @@ RUN echo "alias ll='ls -alF'" > /etc/profile.d/99-custom-aliases.sh && \
     echo "force_color_prompt=yes" >> /etc/profile.d/99-custom-aliases.sh && \
     chmod +x /etc/profile.d/99-custom-aliases.sh
 
-# 7. 切换工作目录和用户
+# 8. 切换工作目录和用户
 WORKDIR ${HOME}
 USER ${USER}
 
-# 8. 默认启动命令 (MyBinder 会自动覆盖此命令，但本地测试时需要)
+# 9. 默认启动命令 (MyBinder 会自动覆盖此命令，但本地测试时需要)
 CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
