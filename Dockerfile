@@ -6,7 +6,7 @@ FROM ubuntu:24.04
 # 1. 设置非交互模式，防止 apt 安装时弹出配置界面卡住构建
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 2. 【关键修复】允许 pip 在 Ubuntu 24.04 中全局安装包 (绕过 PEP 668 限制)
+# 2. 允许 pip 在 Ubuntu 24.04 中全局安装包 (绕过 PEP 668 限制)
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 # 3. 以 root 身份安装所有系统级依赖 (必须在切换 USER 之前执行)
@@ -37,9 +37,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# 4. 升级 pip 并安装 Jupyter 核心组件 (现在有了 PIP_BREAK_SYSTEM_PACKAGES=1，这里不会再报错了)
-RUN pip3 install --no-cache-dir --upgrade pip && \
-    pip3 install --no-cache-dir notebook jupyterlab
+# 4. 【关键修改】直接安装 Jupyter 核心组件 (跳过 upgrade pip，避免 Debian 打包冲突)
+RUN pip3 install --no-cache-dir notebook jupyterlab
 
 # 5. 创建非 root 用户并设置环境 (MyBinder 默认通常为 jovyan)
 ARG NB_USER=jovyan
