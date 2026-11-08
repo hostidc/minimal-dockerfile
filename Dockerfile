@@ -37,17 +37,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# 4. 【关键修改】直接安装 Jupyter 核心组件 (跳过 upgrade pip，避免 Debian 打包冲突)
+# 4. 升级 pip 并安装 Jupyter 核心组件
 RUN pip3 install --no-cache-dir notebook jupyterlab
 
-# 5. 创建非 root 用户并设置环境 (MyBinder 默认通常为 jovyan)
+# 5. 【关键修复】删除 Ubuntu 默认的 ubuntu 用户以释放 UID 1000，然后创建 jovyan 用户
 ARG NB_USER=jovyan
 ARG NB_UID=1000
 
 ENV USER=${NB_USER}
 ENV HOME=/home/${NB_USER}
 
-RUN adduser --disabled-password \
+RUN userdel -r ubuntu || true && \
+    adduser --disabled-password \
     --gecos "Default user" \
     --uid ${NB_UID} \
     ${NB_USER} && \
