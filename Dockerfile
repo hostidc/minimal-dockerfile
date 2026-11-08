@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM ai/qwen3.8:27b-q4_K_M
 # install the notebook package
 RUN pip install --no-cache --upgrade pip && \
     pip install --no-cache notebook jupyterlab
