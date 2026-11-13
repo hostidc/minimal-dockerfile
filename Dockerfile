@@ -13,7 +13,7 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 ENV SHELL=/bin/bash
 ENV TERM=xterm-256color
 
-# 4. 以 root 身份安装所有系统级依赖
+# 4. 以 root 身份安装所有系统级依赖 (已补齐 Aseprite 官方推荐的 Linux 图形依赖)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget ca-certificates git iproute2 procps net-tools dnsutils tree jq vim-tiny nano less unzip zip tar gzip \
     openssh-client openssh-server \
@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip python3-venv python3-dev \
     build-essential libssl-dev pkg-config \
     cmake gdb ninja-build clang lld \
-    libx11-dev libxcursor-dev libxi-dev libgl1-mesa-dev libfontconfig1-dev libxcb1-dev \
+    libx11-dev libxcursor-dev libxi-dev libxrandr-dev libgl1-mesa-dev libfontconfig1-dev libxcb1-dev \
     sudo locales tzdata man-db software-properties-common \
     ffmpeg \
     libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev \
