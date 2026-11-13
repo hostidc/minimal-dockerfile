@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip python3-venv python3-dev \
     build-essential libssl-dev pkg-config \
     cmake gdb ninja-build clang lld \
+    libx11-dev libxcursor-dev libxi-dev libgl1-mesa-dev libfontconfig1-dev libxcb1-dev \
     sudo locales tzdata man-db software-properties-common \
     ffmpeg \
     libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev \
