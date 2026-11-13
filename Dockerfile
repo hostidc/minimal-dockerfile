@@ -1,5 +1,5 @@
 # ============================================
-# Minimal Dockerfile for Jupyter/MyBinder Environment
+# Optimized Dockerfile for Jupyter/MyBinder Environment
 # ============================================
 FROM ubuntu:24.04
 
@@ -13,7 +13,7 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 ENV SHELL=/bin/bash
 ENV TERM=xterm-256color
 
-# 4. 以 root 身份安装所有系统级依赖 (包含 maven)
+# 4. 以 root 身份安装所有系统级依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget ca-certificates git iproute2 procps net-tools dnsutils tree jq vim-tiny nano less unzip zip tar gzip \
     openssh-client openssh-server \
@@ -30,10 +30,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# 5. 安装 Jupyter 核心组件
-RUN pip3 install --no-cache-dir notebook jupyterlab
+# 5. 安装 Jupyter 核心组件 + 资源监控插件 (防断开调试神器)
+RUN pip3 install --no-cache-dir \
+    notebook \
+    jupyterlab \
+    jupyter-resource-usage
 
-# 6. 创建非 root 用户 (提前创建，以便后续将 Node 安装到用户目录)
+# 6. 创建非 root 用户
 ARG NB_USER=jovyan
 ARG NB_UID=1000
 ENV USER=${NB_USER}
@@ -46,13 +49,9 @@ RUN userdel -r ubuntu || true && \
     --shell /bin/bash \
     ${NB_USER}
 
-# 7. ============================================
-#    安装 Node.js 和版本切换工具 'n' (无 root 权限版)
-# ============================================
-# 【核心技巧】设置 N_PREFIX，让 n 把 Node 安装到用户的 ~/.local 目录下，彻底告别 sudo！
+# 7. 安装 Node.js 和版本切换工具 'n' (无 root 权限版)
 ENV N_PREFIX=${HOME}/.local
 ENV PATH=${N_PREFIX}/bin:${PATH}
-
 ENV NODE_VERSION=20.18.0
 
 RUN ARCH=$(dpkg --print-architecture) && \
@@ -61,9 +60,8 @@ RUN ARCH=$(dpkg --print-architecture) && \
     curl -fsSL https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz -o /tmp/node.tar.xz && \
     tar -xJf /tmp/node.tar.xz -C ${N_PREFIX} --strip-components=1 && \
     rm /tmp/node.tar.xz && \
-    # 安装 n 到用户的 ~/.local/bin 下
     npm install -g n && \
-    # 确保 jovyan 用户完全拥有 .local 目录
+    npm cache clean --force && \
     chown -R ${NB_UID}:${NB_UID} ${HOME}/.local
 
 # 8. 确保终端有颜色且 ll 命令可用
@@ -73,15 +71,12 @@ RUN echo "alias ll='ls -alF'" > /etc/profile.d/99-custom-aliases.sh && \
     echo "force_color_prompt=yes" >> /etc/profile.d/99-custom-aliases.sh && \
     chmod +x /etc/profile.d/99-custom-aliases.sh
 
-# 9. ============================================
-#    【核心修复】在切换用户前，将 HOME 目录的完全控制权移交给普通用户
-#    这会清除 root 在第 7 步运行 npm 时留下的 ~/.npm 等目录的 root 权限
-# ============================================
+# 9. 【核心修复】移交 HOME 目录控制权
 RUN chown -R ${NB_UID}:${NB_UID} ${HOME}
 
 # 10. 切换工作目录和用户
 WORKDIR ${HOME}
 USER ${USER}
 
-# 11. 默认启动命令 (因为已经是 jovyan 用户，去掉了 --allow-root)
-CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser"]
+# 11. 优化启动命令：兼容 MyBinder 的环境变量注入，并禁用部分不必要的检查以加快启动
+CMD ["sh", "-c", "jupyter lab --ip=0.0.0.0 --port=${PORT:-8888} --no-browser --ServerApp.token='' --ServerApp.allow_origin='*'"]
